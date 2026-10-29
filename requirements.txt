@@ -1,0 +1,3 @@
+numpy
+# 可选：装了走 scipy.sparse.csgraph，大网格快很多；没装自动退化纯 numpy
+scipy
