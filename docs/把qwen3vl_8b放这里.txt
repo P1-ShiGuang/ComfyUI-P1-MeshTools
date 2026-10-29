@@ -1,0 +1,6 @@
+﻿这个文件夹放 Qwen 文本编码器（本分享包不包含，需自己下载）：
+
+    qwen3vl_8b_int8_convrot.safetensors      约 9.4 GB
+
+下载后放到 ComfyUI/models/text_encoders/ 下，文件名必须完全一致。
+对应工作流节点 #929。

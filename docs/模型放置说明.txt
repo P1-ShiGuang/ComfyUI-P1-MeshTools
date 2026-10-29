@@ -1,0 +1,80 @@
+﻿P1_时光  Pixal3D 3D打印工作流  分享包
+==================================================
+
+一、这个包里面有什么
+--------------------------------------------------
+1) 3D模型工作流B站：P1_时光.json   —— ComfyUI 工作流（直接拖进 ComfyUI 或从面板 Load）
+2) 6 个模型文件，已按 ComfyUI 的目录结构分好类，见下表
+
+
+二、模型放置（把文件夹整个拷进 ComfyUI/models/ 即可）
+--------------------------------------------------
+ComfyUI/models/
+├─ diffusion_models/
+│   ├─ pixal3d_multiview_int8_convrot.safetensors   5.20 GB  → 节点 #319 多视图细化用
+│   └─ pixal3d_int8_convrot.safetensors             5.20 GB  → 节点 #948 基础几何用
+├─ vae/
+│   ├─ trellis_2_shape_vae_bf16.safetensors         1.02 GB  → 节点 #117 结构VAE
+│   └─ trellis_2_texture_vae_bf16.safetensors       0.88 GB  → 节点 #906 贴图VAE
+├─ clip_vision/
+│   └─ dino_v3_L_naf_fp32.safetensors               1.13 GB  → 节点 #15  图像特征
+└─ background_removal/
+    └─ birefnet.safetensors                         0.41 GB  → 节点 #193 去背景
+
+模型合计 13.85 GB
+（如果你的 ComfyUI 用 unet/ 而不是 diffusion_models/，两个 pixal3d 文件放 unet/ 也行，两者都能识别）
+
+
+三、还需要你自己下载的模型（Qwen-Image-2.1，本包未包含）
+--------------------------------------------------
+文件名（必须完全一致）                              大小      放到
+qwen_image_2.1_int8_convrot.safetensors           约 7.3 GB  models/diffusion_models/
+qwen3vl_8b_int8_convrot.safetensors               约 9.4 GB  models/text_encoders/
+qwen_image_2.1_vae_bf16.safetensors               约 0.7 GB  models/vae/
+
+对应工作流节点：#928（UNET）、#929（CLIP/文本编码）、#930（VAE）
+说明：这三个是"用一张图生成四个视角"的那一段用的。没有它们，工作流从 #928 开始就加载失败。
+
+
+四、软件环境要求
+--------------------------------------------------
+ComfyUI      ：需要带 3D 节点的版本（comfy_extras 里有 nodes_trellis2 / nodes_mesh_postprocess
+               / nodes_mesh_io / nodes_save_3d / nodes_load_3d / nodes_hunyuan3d）。本包在 0.39.0 上验证通过。
+Python       ：≥ 3.10（推荐 3.12）
+PyTorch      ：≥ 2.1（int8 模型靠 torch._int_mm，低于 2.1 会直接报错）；推荐 2.6+，CUDA 用 cu124 以上
+GPU          ：NVIDIA，Turing(sm75) 起，显存 ≥ 20 GB
+内存         ：≥ 48 GB（LOD 那一步常驻 40~55 GB）
+Blender      ：4.5（LOD 降面用），路径写在节点 #333 PrimitiveString 里，装完记得改成你自己的路径
+
+必需的自定义节点（5 个）
+  WTiVo-WatertightVoxel-ComfyuiNode      作者 Mstafa-awad
+  WTiVo-FastMergeByDistance              作者 Mstafa-awad
+  LODTailor-The-Mesh-Trimmer-ComfyuiNode 作者 Mstafa-awad
+  ComfyUI-MemoryCleaner
+  P1-MeshTools                           —— P1_时光 自研，提供 P1KeepLargestBody（丢小碎屑）
+                                            ★ 这个包已随本分享包含：见 自定义节点/P1-MeshTools/
+                                              其余 4 个第三方包需自己装，安装方法见 自定义节点/插件安装说明.txt
+
+WTiVo 需要自己的运行环境：把 python_wtivo（Python 3.12 + torch 2.8.0+cu128）放在 ComfyUI 同级目录。
+启动脚本里建议加一行（否则 WTiVo 每次多花约 13 分钟做单线程复核）：
+    set "WTIVO_SKIP_TRIMESH_AUDIT=1"
+
+
+五、跑之前必须改的两个地方
+--------------------------------------------------
+1) 节点 #122 LoadImage：换成你自己的图（单人、全身、脚底离画面边缘留白）
+   ⚠ 如果生成的模型"没有脚/没有腿"，问题不在分辨率——
+     是 WTiVo 的 faithc_component_mode 用了 largest，把独立的腿当碎壳删掉了。
+     把它改成 keep_all（本工作流已改好），并保留 #924 P1KeepLargestBody(0.001) 只清极小碎屑。
+2) 节点 #333 PrimitiveString：Blender 的 exe 路径，改成你自己机器上的
+
+跑法：面板里 Load 这个 json → Queue。
+     中途不要点"保存"，一保存面板里的旧参数会把文件覆盖回去。
+     建议串行跑，不要同时提交两个任务。
+
+
+六、耗时参考（RTX 3080 20GB / 16核 / 64GB）
+--------------------------------------------------
+1536 档（本工作流默认）：一轮约 22~40 分钟
+  WTiVo 约 2 分钟 → LOD 降面 5~10 分钟 → 打印件保存 → 彩色链
+输出：ComfyUI/output/3d/  打印件约 240 MB，彩色件约 107 MB

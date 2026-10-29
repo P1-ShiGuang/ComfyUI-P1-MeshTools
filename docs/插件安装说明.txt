@@ -1,0 +1,42 @@
+﻿自定义节点安装说明
+==================================================
+
+工作流用到 5 个自定义节点包。**其中 1 个是本包自带的（P1_时光 自研），另外 4 个是第三方的，需要你自己装。**
+
+一、本包自带（已放在 自定义节点/P1-MeshTools/）
+--------------------------------------------------
+  P1-MeshTools      提供节点「P1 只保留最大体」(P1KeepLargestBody)
+                    工作流节点 #924 用它——LOD 降面之后会残留碎屑，
+                    实测 LOD 输出有 88 个连通体，不清理会全部打进打印件。
+                    依赖：numpy（必需）、scipy（建议装，没有也能跑只是慢）
+                    安装：把 P1-MeshTools 整个文件夹放到
+                          ComfyUI/custom_nodes/P1-MeshTools
+
+二、第三方，需要自己安装（作者 Mstafa-awad，在 GitHub 搜仓库名）
+--------------------------------------------------
+  1) WTiVo-WatertightVoxel-ComfyuiNode       节点 #327  体素重建+水密
+  2) WTiVo-FastMergeByDistance               节点 #330  按距离合并
+  3) LODTailor-The-Mesh-Trimmer-ComfyuiNode  节点 #328  Blender 降面（另有 #331）
+  4) ComfyUI-MemoryCleaner                   显存/内存清理（工作流里 7 处）
+
+  安装方法（任选一种）
+    a. ComfyUI-Manager 里按名字搜，安装
+    b. 手动：git clone 到 ComfyUI/custom_nodes/ 下
+    c. 下载 zip 解压到 ComfyUI/custom_nodes/ 下（目录里要能看到 __init__.py）
+
+  ⚠ WTiVo 需要额外一套运行环境：把 python_wtivo（Python 3.12 + torch 2.8 + cu128）
+    放在 ComfyUI 同级目录，插件会自己调用它跑体素/图割。
+
+三、装完重启 ComfyUI，面板里应该没有红色节点
+--------------------------------------------------
+  如果 #924 是红的  → P1-MeshTools 没放对位置
+  如果 #327 是红的  → WTiVo 缺 python_wtivo 环境
+  如果 #328 是红的  → LODTailor 没装，或 #333 里的 Blender 路径不存在
+  如果彩色链某处是红的 → MemoryCleaner 没装
+
+四、可选优化（不改也能跑）
+--------------------------------------------------
+  WTiVo 每次会花约 13 分钟做一次单线程的脚本复核（面数上亿时）。
+  如果你的 wtivo.py 支持，可以在启动脚本里加一行跳过它：
+      set "WTIVO_SKIP_TRIMESH_AUDIT=1"
+  没有这行也不影响出片，只是慢；加了但你的 wtivo.py 不认识这个变量也没有副作用。
